@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101827">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="KIWAMI">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<title>ガールズ競輪AI・極</title>
+<style>
+:root{color-scheme:dark;--bg:#09111e;--card:#142136;--card2:#1b2b43;--line:#30435d;--txt:#eef4fc;--muted:#a5b5c9;--gold:#e8bd65;--blue:#7bbdff;--green:#8be0b1}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif}
+header{padding:18px 16px 14px;background:linear-gradient(135deg,#1b2c46,#0b1423);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+h1{font-size:22px;margin:0;color:var(--gold)}header p{font-size:12px;color:var(--muted);margin:4px 0 0}
+main{max-width:760px;margin:auto;padding:12px 12px 100px}
+nav{display:flex;gap:7px;overflow:auto;padding:6px 0 12px;position:sticky;top:76px;background:var(--bg);z-index:4}
+nav button,.btn{border:1px solid var(--line);border-radius:10px;background:var(--card2);color:var(--txt);padding:11px 13px;font-size:14px;white-space:nowrap}
+nav button.active,.primary{background:#a27c39;color:#101827;border-color:#e8bd65;font-weight:700}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:10px 0}
+h2{font-size:18px;color:var(--gold);margin:0 0 12px}h3{font-size:15px;margin:15px 0 8px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
+input,select{width:100%;background:#0c1727;color:var(--txt);border:1px solid var(--line);border-radius:9px;padding:11px;font-size:16px;min-width:0}
+.rider{display:grid;grid-template-columns:28px 1.4fr 1fr 1fr;gap:6px;align-items:center;margin:7px 0}
+.rider b{color:var(--gold);text-align:center}.rider input{padding:9px 6px;font-size:14px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.muted{color:var(--muted);font-size:12px}.warn{color:#ffd28a;font-size:12px}.good{color:var(--green)}
+.hidden{display:none!important}
+table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:8px 5px;border-bottom:1px solid var(--line);text-align:right}td:first-child,th:first-child{text-align:left}th{color:var(--muted)}
+.scroll{overflow-x:auto}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.stat{background:var(--card2);padding:10px;border-radius:9px}.stat strong{display:block;color:var(--gold);font-size:20px}
+footer{text-align:center;color:var(--muted);font-size:11px;padding:20px}
+@media(max-width:420px){.grid{grid-template-columns:1fr 1fr}.rider{grid-template-columns:22px 1.3fr .8fr .8fr}.rider input{font-size:13px}}
+</style></head>
+<body>
+<header><h1>ガールズ競輪AI・極 <small style="font-size:12px;color:#c5d4e7">KIWAMI iPhone版</small></h1><p>女子競輪専用・レース分析／端末内保存</p></header>
+<main>
+<nav>
+<button class="active" data-tab="race">選手入力</button><button data-tab="sim">予想</button><button data-tab="odds">オッズ計算</button><button data-tab="history">履歴</button>
+</nav>
+<section id="race" class="panel">
+<h2>レース情報</h2>
+<div class="grid">
+<div><label>開催日</label><input id="date" type="date"></div>
+<div><label>競輪場</label><input id="venue" placeholder="例：京王閣"></div>
+<div><label>レース番号</label><input id="raceNo" placeholder="例：10R"></div>
+<div><label>試行回数</label><select id="runs"><option value="1000">1,000回</option><option value="10000" selected>10,000回</option><option value="50000">50,000回</option></select></div>
+</div>
+<h3>出走選手（2〜7名）</h3>
+<p class="muted">選手名・競走得点・直近10走の1着／2着／3着回数を入力してください。空欄の項目は補正に使いません。</p>
+<div id="riders"></div>
+<div class="actions"><button class="btn" id="add">＋ 選手追加</button><button class="btn" id="save">入力を保存</button><button class="btn" id="reset">初期化</button></div>
+<p class="warn">選手データは自動取得していません。公式情報などで確認した値を入力してください。</p>
+</section>
+<section id="sim" class="panel hidden">
+<h2>展開シミュレーション</h2>
+<div class="grid">
+<label class="check"><input type="checkbox" id="front" checked>先行有利シナリオ</label>
+<label class="check"><input type="checkbox" id="chase" checked>差し有利シナリオ</label>
+<label class="check"><input type="checkbox" id="chaos" checked>混戦シナリオ</label>
+<label class="check"><input type="checkbox" id="upset" checked>波乱シナリオ</label>
+</div>
+<div class="actions"><button class="btn primary" id="run">予想を実行</button><button class="btn" id="savePred">予想を履歴に保存</button></div>
+<div id="result" style="margin-top:14px" class="muted">選手を入力して「予想を実行」を押してください。</div>
+<p class="warn">簡易確率モデルによる参考値です。実際の競走展開を完全再現せず、的中・利益を保証しません。</p>
+</section>
+<section id="odds" class="panel hidden">
+<h2>オッズ・期待値計算</h2>
+<div class="grid">
+<div><label>買い目（例 3-1-5）</label><input id="bet" placeholder="3-1-5"></div>
+<div><label>オッズ</label><input id="oddsVal" type="number" min="1" step=".1" placeholder="24.5"></div>
+<div><label>購入金額（円）</label><input id="stake" type="number" min="100" step="100" value="100"></div>
+<div><label>推定的中確率（%）</label><input id="prob" type="number" min="0" max="100" step=".01" placeholder="予想結果から入力"></div>
+</div>
+<div class="actions"><button class="btn primary" id="calc">期待値を計算</button></div>
+<div id="roi"></div>
+</section>
+<section id="history" class="panel hidden">
+<h2>保存した予想</h2><button class="btn" id="clear">履歴を消去</button><div id="hist" style="margin-top:10px" class="muted">履歴はありません。</div>
+</section>
+<footer>KIWAMI iPhone版 · データはこのブラウザ内に保存されます。自動データ取得・サーバー同期は未接続です。</footer>
+</main>
+<script>
+const $=id=>document.getElementById(id);let riders=[],last=null;
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function addRider(r={}){if(riders.length>=7)return;riders.push({name:r.name||'',score:r.score??'',w:r.w??'',s:r.s??'',t:r.t??''});draw()}
+function draw(){ $('riders').innerHTML='';riders.forEach((r,i)=>{let d=document.createElement('div');d.className='rider';d.innerHTML=`<b>${i+1}</b><input placeholder="選手名" value="${esc(r.name)}" data-i="${i}" data-k="name"><input type="number" placeholder="得点" step=".01" value="${r.score}" data-i="${i}" data-k="score"><input type="number" placeholder="1着" value="${r.w}" data-i="${i}" data-k="w"><input type="number" placeholder="2着" value="${r.s}" data-i="${i}" data-k="s">`; $('riders').append(d)});$('riders').querySelectorAll('input').forEach(x=>x.oninput=()=>{let r=riders[+x.dataset.i];r[x.dataset.k]=x.dataset.k==='name'?x.value:(x.value===''?'':+x.value)})}
+function saveState(){localStorage.setItem('kiwamiPhoneRace',JSON.stringify({riders,date:$('date').value,venue:$('venue').value,raceNo:$('raceNo').value}))}
+function loadState(){try{let x=JSON.parse(localStorage.getItem('kiwamiPhoneRace')||'null');if(x){riders=x.riders||[];$('date').value=x.date||'';$('venue').value=x.venue||'';$('raceNo').value=x.raceNo||''}}catch(e){}if(!riders.length){addRider();addRider();addRider();}else draw()}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x===b));['race','sim','odds','history'].forEach(t=>$(t).classList.toggle('hidden',t!==b.dataset.tab));if(b.dataset.tab==='history')showHistory()});
+$('date').value=new Date().toISOString().slice(0,10);loadState();
+$('add').onclick=()=>addRider();$('save').onclick=()=>{saveState();alert('このiPhoneのブラウザに保存しました')};$('reset').onclick=()=>{if(confirm('入力を初期化しますか？')){riders=[];addRider();addRider();addRider();saveState()}};
+function gaussian(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function run(){let a=riders.map((r,i)=>({...r,no:i+1})).filter(r=>r.name.trim()&&+r.score>0);if(a.length<2){$('result').innerHTML='<p class="warn">選手名と競走得点を2名以上入力してください。</p>';return}
+let n=+$('runs').value,counts=a.map(()=>[0,0,0]),comb={};let scenarios=[ $('front').checked?'front':null,$('chase').checked?'chase':null,$('chaos').checked?'chaos':null,$('upset').checked?'upset':null].filter(Boolean);if(!scenarios.length)scenarios=['chaos'];
+for(let k=0;k<n;k++){let sc=scenarios[Math.floor(Math.random()*scenarios.length)];let order=a.map(r=>{let recent=+r.w*3+ +r.s*1.7+ +r.t*.8;let strength=(+r.score-45)*.48+recent*.13;let adj=sc==='upset'?gaussian()*3:sc==='chaos'?gaussian()*2:0;return {r,v:strength+adj+gaussian()*(sc==='front'?1.7:2.1)}}).sort((x,y)=>y.v-x.v).map(x=>x.r);order.slice(0,3).forEach((r,j)=>counts[a.indexOf(r)][j]++);if(order.length>=3){let key=order.slice(0,3).map(x=>x.no).join('-');comb[key]=(comb[key]||0)+1}}
+last={n,a,counts,comb};let rank=a.map((r,i)=>({r,c:counts[i]})).sort((x,y)=>y.c[0]-x.c[0]);$('result').innerHTML=`<div class="stats"><div class="stat"><small>試行回数</small><strong>${n.toLocaleString()}</strong></div><div class="stat"><small>出走選手</small><strong>${a.length}名</strong></div><div class="stat"><small>展開種類</small><strong>${scenarios.length}</strong></div></div><h3>着順確率</h3><div class="scroll"><table><tr><th>選手</th><th>1着</th><th>2着</th><th>3着</th></tr>${rank.map(x=>`<tr><td>${x.r.no}番 ${esc(x.r.name)}</td><td>${(x.c[0]/n*100).toFixed(1)}%</td><td>${(x.c[1]/n*100).toFixed(1)}%</td><td>${(x.c[2]/n*100).toFixed(1)}%</td></tr>`).join('')}</table></div><h3>3連単候補</h3><div class="scroll"><table><tr><th>買い目</th><th>推定確率</th></tr>${Object.entries(comb).sort((x,y)=>y[1]-x[1]).slice(0,10).map(([k,v])=>`<tr><td>${k}</td><td>${(v/n*100).toFixed(2)}%</td></tr>`).join('')}</table></div>`}
+$('run').onclick=run;
+$('savePred').onclick=()=>{if(!last){alert('先に予想を実行してください');return}let h=JSON.parse(localStorage.getItem('kiwamiPhoneHistory')||'[]');h.unshift({date:$('date').value,venue:$('venue').value,raceNo:$('raceNo').value,n:last.n,rows:last.a.map((r,i)=>({no:r.no,name:r.name,p:(last.counts[i][0]/last.n*100).toFixed(1)}))});localStorage.setItem('kiwamiPhoneHistory',JSON.stringify(h));alert('予想履歴に保存しました')};
+$('calc').onclick=()=>{let o=+$('oddsVal').value,s=+$('stake').value,p=+$('prob').value/100;if(!(o>1&&s>0&&p>=0&&p<=1)){$('roi').innerHTML='<p class="warn">オッズ・購入金額・確率を確認してください。</p>';return}let ev=s*(p*o-1);$('roi').innerHTML=`<div class="stats"><div class="stat"><small>期待損益</small><strong>${Math.round(ev)}円</strong></div><div class="stat"><small>期待回収率</small><strong>${(p*o*100).toFixed(1)}%</strong></div><div class="stat"><small>損益分岐確率</small><strong>${(100/o).toFixed(2)}%</strong></div></div>`};
+function showHistory(){let h=JSON.parse(localStorage.getItem('kiwamiPhoneHistory')||'[]');$('hist').innerHTML=h.length?h.map(x=>`<div class="panel"><b>${esc(x.date)} ${esc(x.venue)} ${esc(x.raceNo)}</b><br>${x.rows.map(r=>`${r.no}番 ${esc(r.name)}：1着確率 ${r.p}%`).join('<br>')}<p class="muted">${x.n}回試行</p></div>`).join(''):'履歴はありません。'}
+$('clear').onclick=()=>{if(confirm('履歴を消去しますか？')){localStorage.removeItem('kiwamiPhoneHistory');showHistory()}};
+</script><script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));}</script>
+</body></html>
